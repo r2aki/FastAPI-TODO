@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user
 from app.db import get_db
 from app.models import User
 from app.schemas import UserCreate, UserRead
@@ -25,3 +26,8 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -
     await db.commit()
     await db.refresh(new_user)
     return UserRead.model_validate(new_user)
+
+
+@user_router.get("/me", response_model=UserRead)
+async def read_me(current_user: User = Depends(get_current_user)):
+    return current_user
