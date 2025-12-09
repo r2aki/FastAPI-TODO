@@ -10,16 +10,25 @@ from app.schemas import ProjectCreate, ProjectRead
 project_router = APIRouter(prefix="/projects", tags=["projects"])
 
 
-@project_router.get("/")
-async def get_projects(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    result = await db.execute(
-        select(Project).where(Project.owner_id == current_user.id)
+@project_router.get("/", response_model=list[ProjectRead])
+async def get_projects(
+        limit: int = 20,
+        offset: int = 0,
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    query = (
+        select(Project)
+        .where(Project.owner_id == current_user.id)
+        .limit(limit)
+        .offset(offset)
     )
+    result = await db.execute(query)
     projects = result.scalars().all()
     return [ProjectRead.model_validate(p) for p in projects]
 
 
-@project_router.post("/")
+@project_router.post("/", response_model=ProjectRead, status_code=201)
 async def create_project(project_in: ProjectCreate, db: AsyncSession = Depends(get_db),
                          current_user: User = Depends(get_current_user)) -> ProjectRead:
     new_project = Project(
