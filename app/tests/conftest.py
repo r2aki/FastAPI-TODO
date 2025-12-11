@@ -20,3 +20,29 @@ def prepare_database():
 def client():
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def register_and_login(client):
+    def _register_and_login(username: str, password: str, email: str) -> str:
+        # 1. регистрация
+        reg_payload = {
+            "username": username,
+            "email": email,
+            "password": password,
+        }
+        r = client.post("/users/", json=reg_payload)
+        assert r.status_code in (200, 201)
+
+        # 2. логин
+        login_payload = {
+            "username": username,
+            "password": password,
+        }
+        r = client.post("/auth/login", json=login_payload)
+        assert r.status_code == 200
+        data = r.json()
+        assert "access_token" in data
+        return data["access_token"]
+
+    return _register_and_login
